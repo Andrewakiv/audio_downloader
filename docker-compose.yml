@@ -1,0 +1,111 @@
+version: "3.8"
+services:
+  backend:
+    container_name: tgload-backend
+    image: tgload-backend
+    profiles:
+      - backend
+    build:
+      dockerfile: ./docker/backend/Dockerfile
+      context: ./backend/
+      args:
+        # these variables will be accessible during container build
+        - GID
+        - UID
+        - USER_NAME
+        - POETRY_VERSION
+    environment:
+      RUN_MODE: poller
+    env_file:
+      - ./backend/envs/local/build.env
+
+    # this works only for development, where we have db and backend
+    # on the same machine, for production, we need to find a solution
+    # for supervisord to wait for db to startup properly
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./backend/src:/opt/tgload/
+#      - ${DOCKER_DATA_PATH}/media:/opt/frpm/static/media
+
+  db:
+    container_name: tgload-db
+    image: postgres:16
+    profiles:
+      - backend
+    volumes:
+      - postgresql_db:/var/lib/postgresql/data
+    environment:
+      - PGUSER=postgres
+    env_file:
+      - ./backend/envs/local/db.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: tgload-pgadmin
+    profiles:
+      - backend
+    restart: on-failure
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: tgload-rabbitmq
+    profiles:
+      - backend
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: rmquser
+      RABBITMQ_DEFAULT_PASS: rmqpass
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  celery:
+    build:
+      dockerfile: ./docker/backend/Dockerfile
+      context: ./backend/
+      args:
+        # these variables will be accessible during container build
+        - GID
+        - UID
+        - USER_NAME
+        - POETRY_VERSION
+    container_name: tgload-celery
+    profiles:
+      - backend
+    environment:
+      RUN_MODE : worker
+    env_file:
+      - ./backend/envs/local/build.env
+    volumes:
+      - ./backend/src:/opt/tgload/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+
+volumes:
+  postgresql_db:
+  pgadmin_data:
+  rabbitmq_data:
