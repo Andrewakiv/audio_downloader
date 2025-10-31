@@ -4,7 +4,7 @@ def download_audio(url: str):
 
     ydl_opts = {
         "format": "bestaudio[ext=m4a]/bestaudio/best",
-        "outtmpl": "./data/%(title).200s [%(id)s].%(ext)s",
+        "outtmpl": "./data/%(title).200s",
         "restrictfilenames": True,
 
         "postprocessors": [{
@@ -24,4 +24,7 @@ def download_audio(url: str):
     }
 
     with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+        info = ydl.extract_info(url, download=True)
+        for rd in info.get("requested_downloads") or []:
+            if rd.get("filepath"):
+                return rd["filepath"]
