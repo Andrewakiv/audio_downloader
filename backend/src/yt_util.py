@@ -13,7 +13,7 @@ def download_audio(url: str):
             "preferredquality": "96",
         }],
 
-        "extractor_args": {"youtube": {"player_client": ["android"]}},
+        "extractor_args": {"youtube": {"player_client": ["android"], "skip_cookie_save": ["True"]}},
         "forceip": "ipv4",
 
         "cookiefile": "all_cookies.txt",
