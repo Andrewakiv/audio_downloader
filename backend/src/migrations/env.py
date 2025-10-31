@@ -5,7 +5,6 @@ from sqlalchemy import pool
 
 from alembic import context
 
-
 from common.settings import config as app_config
 from models.audio import Base
 
@@ -25,7 +24,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 config.set_main_option(
     'sqlalchemy.url',
-    'postgresql+psycopg2://postgres:tgload-pass@tgload-db/tgload'
+    app_config.sync_db_url
 )
 
 

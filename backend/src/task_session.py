@@ -3,8 +3,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+from common.settings import config
+
 ENGINE = create_engine(
-    "postgresql+psycopg2://postgres:tgload-pass@tgload-db/tgload",
+    config.sync_db_url,
     pool_size=10,
     max_overflow=10
 )

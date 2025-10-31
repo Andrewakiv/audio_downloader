@@ -10,7 +10,7 @@ def download_audio(url: str):
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
-            "preferredquality": "0",
+            "preferredquality": "96",
         }],
 
         "extractor_args": {"youtube": {"player_client": ["android"]}},
@@ -25,6 +25,12 @@ def download_audio(url: str):
 
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
+        title = info.get("title")
+        channel = info.get("channel") or info.get("uploader")
+
+        meta = {'title': title, 'channel': channel}
         for rd in info.get("requested_downloads") or []:
             if rd.get("filepath"):
-                return rd["filepath"]
+                meta['filepath'] = rd['filepath']
+                break
+        return meta

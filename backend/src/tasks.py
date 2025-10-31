@@ -10,8 +10,8 @@ from yt_util import download_audio
 
 app = Celery(
     'tasks',
-    backend='db+postgresql://postgres:tgload-pass@tgload-db/tgload',
-    broker='amqp://rmquser:rmqpass@tgload-rabbitmq:5672//'
+    backend=config.celery_backend_url,
+    broker=config.broker_url
 )
 
 @app.task(bind=True, base=TaskFactory, autoretry_for=(Exception,), retry_backoff=10, retry_kwargs={"max_retries": 3})
@@ -19,21 +19,27 @@ def process_audio(self: TaskFactory, job_id: str, link: str) -> dict:
     query = select(AudioJob).where(AudioJob.id == uuid.UUID(job_id))
     query_result = self.session.execute(query)
     job = query_result.scalar()
-    filepath = download_audio(link)
+    audio_meta = download_audio(link)
 
-    job.filepath = filepath
-    # self.session.commit()
-    return {"job_id": job_id, "filepath": filepath, "link": link}
+    job.filepath = audio_meta['filepath']
+    return {"job_id": job_id, "audio_meta": audio_meta, "link": link}
 
 @app.task(bind=True, autoretry_for=(Exception,), retry_backoff=10, retry_kwargs={"max_retries": 3})
 def upload_audio(self, payload: dict, chat_id: str) -> dict:
     job_id = payload["job_id"]
-    filepath = payload["filepath"]
+    filepath = payload['audio_meta']["filepath"]
+    title = payload['audio_meta']['title']
+    channel = payload['audio_meta']['channel']
 
     with open(filepath, "rb") as f:
         resp = requests.post(
             f"https://api.telegram.org/bot{config.bot_token.get_secret_value()}/sendAudio",
-                data={"chat_id": chat_id},
+                data={
+                    "chat_id": chat_id,
+                    'title': title,
+                    'performer': channel,
+                    'caption': '🦦 @teleimggbot'
+                },
                 files={"audio": f}, timeout=600
             )
 

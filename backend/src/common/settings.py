@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file_encoding='utf-8')
     bot_token: SecretStr
     db_url: str
+    sync_db_url: str
+    celery_backend_url: str
+    broker_url: str
 
 
 config = Settings()
