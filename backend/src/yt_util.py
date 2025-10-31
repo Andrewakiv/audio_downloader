@@ -3,7 +3,7 @@ from yt_dlp import YoutubeDL
 def download_audio(url: str):
 
     ydl_opts = {
-        "format": "bestaudio[ext=m4a]/bestaudio/best",
+        "format": "bestaudio/best",
         "outtmpl": "./data/%(title).200s",
         "restrictfilenames": True,
 
@@ -15,6 +15,8 @@ def download_audio(url: str):
 
         "extractor_args": {"youtube": {"player_client": ["android"]}},
         "forceip": "ipv4",
+
+        "cookiefile": "all_cookies.txt",
 
         "retries": 10,
         "fragment_retries": 10,
